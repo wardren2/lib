@@ -1,12 +1,11 @@
 package com.library.controller;
 
-import com.library.dto.MemberRegistrationDTO;
-import com.library.dto.MemberResponseDTO;
+import com.library.dto.member.MemberRegistrationDTO;
+import com.library.dto.member.MemberResponseDTO;
 import com.library.service.MemberService;
 import com.library.util.MaskingUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
