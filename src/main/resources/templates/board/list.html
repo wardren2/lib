@@ -1,10 +1,165 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{common/layout :: layout(~{::title}, ~{::content}, ~{::css}, ~{::scripts})}">
 <head>
     <meta charset="UTF-8">
     <title>Title</title>
+
+    <th:block th:fragment="css">
+        <style>
+            /* === 헤더 영역 === */
+            .board-header {
+                display : flex;
+                justify-content: space-between;     /* 자식 요소를 양쪽 끝으로 배치 */
+                align-items: center;        /* 수직 중앙 정렬 */
+                margin-bottom: 30px;
+                padding-bottom: 20px;
+                border-bottom: 2px solid #333;
+            }
+            .total-count {
+
+            }
+            /*글쓰기 버튼*/
+            .btn-write {
+
+            }
+            .btn-write:hover {
+
+            }
+            /* 게시글 테이블 */
+            .board-table {
+
+            }
+            .board-table thead {
+
+            }
+            .board-table th {
+
+            }
+            .board-table td {
+
+            }
+            .board-table tbody tr {
+
+            }
+            .board-table tbody tr:hover {
+
+            }
+            .board-table td.center {
+
+            }
+            .border-table td.title {
+
+            }
+
+            .border-table td.title a {
+
+            }
+
+            .border-table td.title a:hover{
+
+            }
+
+            /* 댓글 수 */
+            .comment-count {
+
+            }
+
+            /* === 카테고리 뱃지 === */
+            .category-badge {
+
+            }
+
+
+        </style>
+    </th:block>
+
 </head>
 <body>
-    게시글 리스트 목록
+    <!--메인 컨텐츠 영역 (layout.html의 <main>에 삽입됨)-->
+    <div th:fragment="content">
+        <div class="container my-4">
+            <h1 class="mb-4">📋 게시판</h1>
+
+            <!-- 헤더 : 전체 게시글 수 & 글쓰기 버튼 -->
+            <div class="board-header">
+                <!--전체 게시글 수 표시-->
+                <div class="total-count">
+                    전체 <strong th:text="${totalElements}">0</strong>개
+                </div>
+                <!--글쓰기 버튼 (로그인한 사용자만 표시)-->
+                <a th:href="@{/boards/new}" class="btn-write" sec:authorize="isAuthenticated()">
+                    ✏️ 글쓰기
+                </a>
+            </div>
+
+            <!--게시글 목록 테이블 (게시글이 있을 때만 표시)-->
+            <table class="board-table" th:if="${boards.hasContent()}">
+                <thead>
+                <tr>
+                    <th style="width: 80px;">번호</th>
+                    <th style="width: 120px;">카테고리</th>
+                    <th>제목</th>
+                    <th style="width: 120px;">작성자</th>
+                    <th style="width: 80px;">조회</th>
+                    <th style="width: 80px;">좋아요</th>
+                    <th style="width: 150px;">작성일</th>
+                </tr>
+                </thead>
+                <tbody>
+                <!--boards.content를 반복하며 각 게시글 출력-->
+                <!--th:each: Thymeleaf 반복문-->
+                <tr th:each="board : ${boards.content}">
+                    <!--게시글 ID-->
+                    <td class="center" th:text="${board.id}">1</td>
+                    <!--카테고리-->
+                    <td class="center">
+                        <!--th:classappend : 기존 class에 동적으로 class 추가-->
+                        <!--board.category.name() : Enum의 name()-->
+                        <!--board.category.displayName : Enum의 displayName-->
+                        <span class="category-badge" th:classappend="${board.category.name()}"
+                              th:text="${board.category.displayName}">
+                                카테고리
+                        </span>
+                    </td>
+                    <!--제목 (클릭시 상세 페이지로 이동)-->
+                    <td class="title">
+                        <a th:href="@{/boards/{id}(id=${board.id})}"
+                           th:text="${board.title}">
+                            게시글 제목
+                        </a>
+                        <!--댓글 수 표시 (댓글이 있을 때만)-->
+                        <!--th:if  조건이 참일 때만 랜더링-->
+                        <span class="comment-count">
+                                <span></span>
+                            </span>
+                    </td>
+
+                    <!--작성자 이름-->
+                    <td class="center" th:text="${board.authorName}">작성자</td>
+                    <!--조회수-->
+                    <td class="center" th:text="${board.viewCount}">0</td>
+                    <!--좋아요 수-->
+                    <td class="center" th:text="${board.likeCount}">0</td>
+                    <!--작성일시-->
+                    <!--#temporals: Thymeleaf의 날짜/시간 유틸리티-->
+                    <td class="center" th:text="${#temporals.format(board.createdAt, 'yyyy-MM-dd HH:mm')}">2025-10-13</td>
+                </tr>
+                </tbody>
+
+            </table>
+            <!--게시글 목록 테이블 (게시글이 없을 때만 표시)-->
+            <div class="empty-list" th:unless="${boards.hasContent()}">
+                <p>게시글이 없습니다. 첫 게시글을 작성해 보세요.</p>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!--게시판 전용 JavaScript (layout.html의 </body> 태그 바로 전에 삽입-->
+    <th:block th:fragment="scripts">
+
+    </th:block>
 </body>
 </html>
