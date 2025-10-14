@@ -7,57 +7,96 @@
 
     <th:block th:fragment="css">
         <style>
-            /* === 헤더 영역 === */
+            /* === 헤더 영역 ===*/
             .board-header {
-                display : flex;
-                justify-content: space-between;     /* 자식 요소를 양쪽 끝으로 배치 */
-                align-items: center;        /* 수직 중앙 정렬 */
+                display: flex;
+                justify-content: space-between;     /*자식 요소를 양쪽 끝으로 배치*/
+                align-items: center;                /*수직 중앙 정렬*/
                 margin-bottom: 30px;
                 padding-bottom: 20px;
                 border-bottom: 2px solid #333;
             }
-            .total-count {
 
+            .total-count {
+                font-size: 16px;
+                color: #495057;
             }
+
+            .total-count strong {
+                color: #007bff;
+                font-size: 18px;
+            }
+
             /*글쓰기 버튼*/
             .btn-write {
-
+                padding: 10px 20px;
+                background-color: #007bff;
+                color:white;
+                border: none;
+                border-radius: 4px;
+                text-decoration: none;
+                font-weight: 500;
+                transition: background-color 0.2s;
             }
             .btn-write:hover {
-
+                background-color: #0056b3;
+                cursor: pointer;
             }
-            /* 게시글 테이블 */
+
+            /*=== 게시글 테이블 ===*/
             .board-table {
-
+                width: 100%;                /* 전체 너비 사용 */
+                border-collapse: collapse;   /* 테두리 겹침 제거 */
+                margin-bottom: 20px;
             }
+
             .board-table thead {
 
             }
+
             .board-table th {
-
+                text-align: center;         /* 헤더 텍스트 중앙 정렬 */
+                vertical-align: middle;     /* 수직 중앙 정렬 */
+                font-weight: bold;
+                padding: 12px 10px;
+                background-color: #f8f9fa;
+                border-bottom: 2px solid #dee2eb;
             }
+
             .board-table td {
-
+                padding: 15px 10px;
+                vertical-align: middle;
             }
+
             .board-table tbody tr {
-
+                border-bottom: 1px solid #e9ecef;
+                transition: background-color 0.2s;      /* 호버 효과 애니메이션 */
             }
+
             .board-table tbody tr:hover {
-
+                background-color: #f8f9fa;
+                cursor: pointer;
             }
+
             .board-table td.center {
-
-            }
-            .border-table td.title {
-
+                text-align: center;
+                vertical-align: middle;
             }
 
-            .border-table td.title a {
-
+            .board-table td.title {
+                text-align: left;
+                padding-left: 20px;
             }
 
-            .border-table td.title a:hover{
+            .board-table td.title a {
+                color: #333;
+                text-decoration: none;
+                transition: color 0.2s;
+            }
 
+            .board-table td.title a:hover {
+                color: #007bff;
+                text-decoration: underline;
             }
 
             /* 댓글 수 */
@@ -66,11 +105,81 @@
             }
 
             /* === 카테고리 뱃지 === */
+            /* 모든 카테고리 배지의 공통 스타일 */
             .category-badge {
-
+                display: inline-block;
+                padding: 4px 12px;
+                border-radius: 12px;
+                font-size: 12px;
+                font-weight: bold;
+                text-align: center;
+                white-space: nowrap;        /*텍스트 줄바꿈 방지*/
             }
 
+            /* 카테고리 공지사항 - 빨간색 */
+            .category-badge.NOTICE {
+                background-color: #ff6b6b;
+                color: white;
+            }
+            /* 카테고리 자유게시판 - 청록색 */
+            .category-badge.FREE {
+                background-color: #4ecdc4;
+                color: white;
+            }
+            /* 카테고리 질문답변 - 노란색 */
+            .category-badge.QNA {
+                background-color: #ffd93d;
+                color: #333;
+            }
+            /* 카테고리 리뷰 - 연두색 */
+            .category-badge.REVIEW {
+                background-color: #a8e6cf;
+                color: #sd5f3f;
+            }
 
+            /* 페이징 영역 */
+            .pagination {
+                display:flex;               /* Flexbox 레이아웃 사용 */
+                justify-content: center;    /* 수평 중앙 정렬 */
+                align-items: center;        /* 수직 중앙 정렬 */
+                gap: 5px;                   /* 버튼간 간격 */
+                margin-top: 40px;           /* 테이블과의 상단 여백 */
+                padding: 20px 0;
+            }
+            /*페이지 버튼 공통 스타일*/
+            .page-btn {
+                min-width: 35px;             /* 최소 너비 (정사각형에 가깝게) */
+                height:35px;                /* 고정 높이 */
+                padding: 8px 12px;
+                border: 1px solid #ddd;
+                background-color: white;
+                color: #333;
+                text-decoration: none;
+                border-radius: 4px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                transition: all 0.2s;       /* 모든 속성 변화에 0.2초 애니메이션 효과 */
+            }
+            /* 페이지 버튼 호버 효과 */
+            .page-btn:hover {
+                background-color: #f8f9fa;
+                border-color: #007bff;
+                color: #007bff;
+            }
+
+            /* 이전/다음 그룹 버튼 (<< 이전, 다음 >>) */
+            .page-btn.nav {
+                font-weight: bold;
+            }
+            /* 비활성 상태 (클릭 불가 상태) */
+            .page-btn.disabled {
+                background-color: #f8f9fa;
+                color: #ccc;
+                border-color: #e9ecef;
+                cursor: not-allowed;        /* 금지 커서 표시 */
+                pointer-events: none;       /* 클릭 이벤트 차단 */
+            }
         </style>
     </th:block>
 
@@ -153,6 +262,33 @@
                 <p>게시글이 없습니다. 첫 게시글을 작성해 보세요.</p>
             </div>
 
+            <!-- th:classappend="${!hasPrevGroup} ? 'disabled' : ''
+                이전 페이지 그룹이 없을 때(hasPrevGroup이 false일 때) 버튼이 비활성화 상태(disabled 클래스 추가)로 보이게 하는 코드-->
+            <!-- 페이징 영역 (게시글이 있고, 전체 페이지가 1개 이상일 때만 표시) -->
+            <div class="pagination" th:if="${boards.hasContent() and totalPages >0}">
+                <!--이전 버튼-->
+                <a th:href="${hasPrevGroup} ? @{/boards(page=${prevGroupPage}, size=8)}: '#'"
+                    th:classappend="${!hasPrevGroup} ? 'disabled' : '' "
+                    class="page-btn nav">
+                    << 이전
+                </a>
+                <!-- 페이지 번호 버튼들 -->
+                <a th:each="pageNum : ${#numbers.sequence(startPage, endPage)}"
+                   th:href="@{/boards(page=${pageNum}, size=8)}"
+                   th:text="${pageNum}"
+                   th:classappend="${pageNum == currentPage} ? 'active' : ''"
+                   class="page-btn">
+
+                </a>
+
+                <!--다음 버튼-->
+                <a th:href="${hasNextGroup} ? @{/boards(page=${nextGroupPage}, size=8)}: '#'"
+                   th:classappend="${!hasNextGroup} ? 'disabled' : ''"
+                   class="page-btn nav">
+                    다음 >>
+                </a>
+
+            </div>
         </div>
 
     </div>

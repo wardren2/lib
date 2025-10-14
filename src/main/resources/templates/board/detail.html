@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{common/layout :: layout(~{::title}, ~{::content}, ~{::css}, ~{::scripts})}">
+
+<head>
+    <meta charset="UTF-8">
+    <title>게시글 상세</title>
+
+    <!--게시글 상세 페이지 전용 스타일 (layout.html의 <head>에 삽입됨)-->
+    <th:block th:fragment="css">
+        <style>
+            /* === 게시글 상세 컨테이너 === */
+            .board-detail {
+                max-width: 900px;       /* 최대 너비 900px로 제한 */
+                margin: 0 auto;
+                background-color: white;
+                border-radius: 8px;
+                box-shadow: 0 2px 4px rgba(0,0,0,1);
+            }
+            /* ===게시글 헤더 영역 ===*/
+            .board-header {
+                padding: 30px;
+                border-bottom: 2px solid #e9ecef;
+            }
+            .board-title {
+                font-size: 28px;
+                font-weight: bold;
+                color: #333;
+                margin-bottom: 20px;
+                line-height: 1.4;
+            }
+            /* === 게시글 메타 정보 컨테이너 ===*/
+            .board-meta {
+                display: flex;
+                justify-content: space-between;     /* 양쪽 끝으로 배치 */
+                align-items: center;
+                flex-wrap: wrap;                    /* 화면이 좁으면 줄바꿈 */
+                gap: 15px;
+                color: #6c757d;
+                font-size: 14px;
+            }
+            /* 메타 정보 좌측 영역 (카테고리, 작성자, 작성일) */
+            .meta-left {
+                display: flex;
+                gap: 20px;
+                align-items: center;
+            }
+            /* 메타 정보 우측 영역 (조회수, 좋아요, 댓글 수) */
+            .meta-right {
+                display:flex;
+                gap: 15px;
+                align-items: center;
+            }
+            /* 개별 메타 정보 아이템 (아이콘 + 텍스트) */
+            .meta-item {
+                display:flex;
+                align-items: center;
+                gap: 5px;
+            }
+
+            /* 메타 정보 아이콘 색상 */
+            .meta-item i {
+                color: #007bff;
+            }
+
+            /* === 카테고리 배치 === */
+            .category-badge {
+                display: inline-block;
+                padding: 4px 12px;
+                border-radius: 12px;
+                font-size: 12px;
+                font-weight: 500;           /* 중간 굵기 글씨 */
+            }
+
+            /* 공지사항 카테고리 - 빨간색 */
+            .category-badge.NOTICE {
+                background-color: #dc3545;
+                color: white;
+            }
+            /* 자유게시판 카테로그 - 청록색 */
+            .category-badge.FREE {
+                background-color: #268d3c;
+                color: white;
+            }
+            /* 질문답변 카테로그 - 노란색 */
+            .category-badge.QNA {
+                background-color: #ffc107;
+                color: #333;
+            }
+            /* 리뷰 카테로그 - 연두색 */
+            .category-badge.REVIEW {
+                background-color: #17a2b8;
+                color: white;
+            }
+
+            .board-content {
+                padding: 30px;
+                min-height: 300px;      /* 최소 높이 (짧은 글도 일정 공간 확보) */
+                line-height: 1.0        /* 줄 간격 (가독성 향상) */
+                color: #333;
+                font-size: 16px;
+                border-bottom: 2px solid #e9ecef;
+            }
+
+            .board-content p {
+                margin-bottom: 1em;
+            }
+
+            /* === 게시글 푸터 (버튼 영역) === */
+            .board-footer {
+                padding: 20px 30px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            .btn-group {
+                display: flex;
+                gap: 10px;
+            }
+        </style>
+    </th:block>
+</head>
+<body>
+<!--메인 컨텐츠 영역 (layout.html의 <main>에 삽입됨)-->
+<th:block th:fragment="content">
+    <div class="board-detail">
+        <!--게시글 헤더 영역-->
+        <div class="board-header">
+            <h1 class="board-title" th:text="${board.title}">게시글 제목</h1>
+
+            <!--게시글 메타 정보 영역-->
+            <div class="board-meta">
+                <!--좌측 정보 : 카테고리, 작성자, 작성일-->
+                <div class="meta-left">
+                    <span class="category-badge"
+                          th:classappend="${board.category.name()}"
+                          th:text="${board.category.displayName}">
+                        카테고리
+                    </span>
+                    <span class="meta-item">
+                        <i class="fas fa-user"></i>
+                        <span th:text="${board.authorName}">작성자</span>
+                    </span>
+                    <span class="meta-item">
+                        <i class="fas fa-calendar"></i>
+                        <span th:text="${#temporals.format(board.createdAt, 'yyyy-MM-dd HH:mm')}">2025-10-14 16:00</span>
+                    </span>
+
+                </div>
+
+                <!--우측 정보 : 조회수, 좋아요 수, 댓글 수-->
+                <div class="meta-right">
+                    <!--조회수 표시-->
+                    <span class="meta-item">
+                        <i class="fas fa-eye"></i>
+                        <span th:text="${board.viewCount}">0</span>
+                    </span>
+
+                    <!--좋아요 표시-->
+                    <span class="meta-item">
+                        <i class="fas fa-heart"></i>
+                        <span th:text="${board.likeCount}">0</span>
+                    </span>
+
+                    <!--댓글 수 표시 (추현 구현 예정)-->
+                    <span class="meta-item">
+                        <i class="fas fa-comment"></i>
+                        <span th:text="${board.commentCount}">0</span>
+                    </span>
+
+                </div>
+            </div>
+
+        </div>
+
+        <!-- === 게시글 본문 영역 === -->
+        <div class="board-content">
+            <div style="white-space: pre-wrap; word-wrap: break-word;" th:text="${board.content}">
+                게시글 내용이 여기에 표시됩니다.
+            </div>
+        </div>
+
+        <!-- === 게시글 푸터 (버튼 영역) === -->
+        <div class="board-footer">
+            <div class="btn-group">
+                <a th:href="@{/boards(page=${page})}" class="btn btn-outline">
+                    <i class="fas fa-list"></i> 목록
+                </a>
+            </div>
+
+            <div class="btn-group" sec:authorize="isAuthenticated()">
+                <!--추후 구현 예정 -->
+            </div>
+        </div>
+    </div>
+</th:block>
+
+<!--게시글 상세 페이지 전용 JavaScript (layout.html의 </body> 직전에 삽입됨)-->
+<th:block th:fragment="scripts">
+    <script>
+
+    </script>
+</th:block>
+</body>
+</html>

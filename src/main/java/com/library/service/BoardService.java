@@ -1,5 +1,6 @@
 package com.library.service;
 
+import com.library.dto.board.BoardDetailDTO;
 import com.library.dto.board.BoardListDTO;
 import com.library.entity.board.Board;
 import com.library.entity.board.BoardStatus;
@@ -57,4 +58,31 @@ public class BoardService {
          */
         return boards.map(BoardListDTO::from);
     }
+    /*
+        게시글 상세 조회
+            - ACTIVE 상태의 게시글만 조회
+            - 조회수를 1 증가시킴 (더티체킹으로 자동 반영)
+        @Transactional (더티체킹의 핵심)
+            - readOnly = false (기본값)
+                - 조회수 증가를 위해서는 readOnly = false (기본값)을 유지해야 함.
+                -> 즉, readOnly=true를 사용하지 않는다
+                - 트랜잭션 내에서 엔터티 변경 => 더티체킹으로 자동 UPDATE
+     */
+    @Transactional      // 더티체킹을 위해 반드시 필요
+    public BoardDetailDTO getBoard(Long id){
+
+        // 1. DB에서 게시글 조회
+        Board board = boardRepository.findByIdAndStatusWithAuthor(id, BoardStatus.ACTIVE)
+                .orElseThrow(() -> new RuntimeException("게시글을 찾을 수 없습니다."));
+
+        // 2. 조회수 증가 (메모리상에서만 증가) -> 이 시점에는 DB에 반영X
+        board.increaseViewCount();
+
+        // 3. Entity를 DTO로 변환해서 반환
+        return BoardDetailDTO.from(board);
+        // 4. 메서드 종료 - 트랙잭션이 커밋 직전 더티체킹 실행
+        // JPA가 스냅샷과 현재 엔터티를 비교하여 viewCount 변경 감지
+        // UPDATE board SET view_count=?, updated_at=? WHERE id=?
+    } 
+    
 }

@@ -1,5 +1,6 @@
 package com.library.controller;
 
+import com.library.dto.board.BoardDetailDTO;
 import com.library.dto.board.BoardListDTO;
 import com.library.service.BoardService;
 import lombok.RequiredArgsConstructor;
@@ -7,6 +8,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 /*
@@ -24,22 +26,28 @@ public class BoardController {
     /*
         게시글 목록 페이지
             - ACTIVE 상태의 게시글 목록을 페이징으로 조회
-            - View와 로직 분리 우너칙에 따라 페이징 계산은 Controller에서 처리함
+            - View와 로직 분리 원칙에 따라 페이징 계산은 Controller에서 처리함
+            - 작성일 최신순 정렬로 인해 ID가 랜덤하게 표시되어서 순차적이지 않을 수 있음
 
         1-based 페이징 시스템 (URL: page=1부터 시작)
             - URL : GET /boards?page=1&size=10
+
+        페이징 그룹 개념
+            - 한 번에 10개의 페이지 번호만 표시 (예: [1][2]...[10], [11][12]...[20], ...)
+            - 전체 115개 게시글, 페이지당 10개 -> 총 12페이지
+            - 그룹1 : 1~10 페이지 표시
+            - 그룹2 : 11~20 페이지 표시
      */
 
     @GetMapping
     public String list(
             @RequestParam(defaultValue = "1") int page,     //조회할 페이지 번호 (기본값:1)
-            @RequestParam(defaultValue = "10") int size,    //페이지당 보여줄 게시글 갯수 (기본값: 10개)
+            @RequestParam(defaultValue = "8") int size,    //페이지당 보여줄 게시글 갯수 (기본값: 8개)
             Model model                                     //뷰에 데이터 전달용 Model
     ) {
         /* Service를 통해 게시글 목록 조회 (page -1 을 전달하여 0-based로 전환)
             Controller에서 들어오는 요청 예: /boards?page=1
             → 즉, page = 1이에요 (사람 기준으로 첫 페이지).
-
 
             하지만 JPA에 그대로 넘기면 JPA는 “두 번째 페이지로 가라”고 착각해요.
             왜냐면 JPA는 0이 첫 페이지라고 생각하거든요.
@@ -76,9 +84,24 @@ public class BoardController {
         model.addAttribute("hasPrevGroup", hasPrevGroup);
         model.addAttribute("hasNextGroup", hasNextGroup);
         model.addAttribute("prevGroupPage", prevGroupPage); // 이전 그룹으로 이동할 때 페이지 번호
-        model.addAttribute("nextGroupPage", hasNextGroup); // 다음 그룹으로 이동할 때 페이지 번호
+        model.addAttribute("nextGroupPage", nextGroupPage); // 다음 그룹으로 이동할 때 페이지 번호
 
         return "board/list";    // 게시글 목록 뷰
+    }
+
+    @GetMapping("/{id}")
+    public String detail(
+        @PathVariable Long id,                      // URL의 {id}를 메서드 파라미터로 바인딩
+        @RequestParam(defaultValue = "1") int page,  // 페이지 번호
+        Model model){
+
+        // Service를 통해 게시글 상세 정보 조회 (조회수 자동 증가)
+        BoardDetailDTO board = boardService.getBoard(id);
+
+        model.addAttribute("board", board);
+        model.addAttribute("page", page);   // 목록으로 들어갈 페이지 번호
+
+        return "board/detail.html";  // 게시글 상세 뷰
     }
 
 }
