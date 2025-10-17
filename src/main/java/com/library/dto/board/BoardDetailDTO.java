@@ -8,6 +8,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /*
     게시글 상세 조회용 DTO
@@ -34,6 +37,9 @@ public class BoardDetailDTO {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
+    @Builder.Default
+    private List<BoardFileDTO> files = new ArrayList<>();
+
     /*
         Board Entity를 BoardDetailDTO로 변환하는 정적 메서드
             - Board Entity와 연관된 Member Entity의 정보를 함께 추출함
@@ -51,6 +57,7 @@ public class BoardDetailDTO {
                 .category(board.getCategory())
                 .createdAt(board.getCreatedAt())
                 .updatedAt(board.getUpdatedAt())
+                .files(board.getFiles().stream().map(BoardFileDTO::from).collect(Collectors.toList())) //Stream으로 변환했다가 다시 List로 변환
                 .build();
     }
 }

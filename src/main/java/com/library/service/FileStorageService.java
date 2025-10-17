@@ -220,7 +220,7 @@ public class FileStorageService {
                 - 3. 점 이후 문자열 추출 (점은 제외)
                 - 4. 소문자로 변환하여 반환
      */
-    private String getFileExtension(String filename){
+    public String getFileExtension(String filename){
         // 1. 파일명 null/empty 체크
         if (filename == null || filename.trim().isEmpty()){
             return "";

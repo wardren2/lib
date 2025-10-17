@@ -77,8 +77,14 @@ public class SecurityConfig {
                 // AuthenticationProvider 등록 (필수)
                 .authenticationProvider(authenticationProvider())
 
+                /*
+                    CSRF 보호 설정 (게시글 삭제 기능을 위해 필수)
+                        - CSRF 보호 활성화 (기본값)
+                            - 모든 POST/PUT/DELETE 요청에 대해 CSRF 토큰 검증
+                            - 토큰이 없거나 잘못된 요청은 403 Forbidden 응답
+                 */
                 .csrf(csrf -> {
-                    csrf.disable();     //개발 단계에서는 비활성화
+//                    csrf.disable();     //개발 단계에서는 비활성화
                     log.info("1. CSRF 보호 비활성화 (운영에서는 활성화 필요!)");
                 })
 

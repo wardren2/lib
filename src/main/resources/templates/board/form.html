@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<!--공통 레이아웃 템플릿 적용 (총 4개 부분을 레이아웃에 삽입: title, content, css, scripts) -->
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{common/layout :: layout(~{::title}, ~{::content}, ~{::css}, ~{::scripts})}">
+<head>
+    <meta charset="UTF-8">
+    <title>게시글 작성</title>
+    <!--레이아웃에 삽입될 CSS 블록 정의-->
+    <th:block th:fragment="css">
+        <style>
+            .form-container {
+                max-width: 800px;
+                margin: 0 auto;
+                padding: 30px;
+                background-color: #fff;
+                border-radius: 8px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);  /* 그림자: 수평, 수직, 흐름, 투명도 10% */
+            }
+
+            .form-header {
+                font-size: 28px;
+                font-weight: bold;
+                color: #333;
+                margin: 0;
+                padding-bottom: 15px;
+                border-bottom: 2px solid #007bff;
+            }
+
+
+            .form-header h2 {
+
+            }
+
+            .form-group {
+                margin-bottom: 20px;
+            }
+
+            .form-group label {
+                display: block;
+                font-weight: 600;
+                margin-bottom: 8px;
+                color: #333;
+            }
+
+            .form-group label .required {
+                color: #dc3545;
+                margin-left: 4px;
+                font-weight: bold;
+            }
+
+            /* ===입력 필드 공통 스타일 === */
+            .form-group input[type="text"],
+            .form-group select,
+            .form-group textarea,
+            .form-group input[type="file"] {
+                width: 100%;
+                padding: 12px;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                font-size: 14px;
+                font-family: 'Arial', sans-serif;
+                background-color: #fff;
+                transition: border-color 0.3s ease;
+            }
+            /* === 포커스 상태 (입력 필드 클릭 시) === */
+            .form-group input[type="text"]:focus,
+            .form-group select,
+            .form-group textarea,
+            .form-group input[type="file"] {
+                outline: none;
+                border-color: #007bff;
+                box-shadow: 0 0 0 3px rgba(0,123,255,0.25);
+                background-color: #f8f9fa;
+            }
+
+            .form-group textarea {
+                resize: vertical;   /*수직 크기 조정만 허용*/
+                min-height: 150px;
+                line-height: 1.6;
+            }
+            .error-message {
+                display: block;
+                color: #dc3545;
+                font-size: 13px;
+                margin-top: 5px;
+                font-weight: 500;
+
+            }
+
+            .form-group.error input,
+            .form-group.error select,
+            .form-group.error textarea {
+                border-color: #dc3545;
+                background-color: #fff5f5;
+            }
+
+            .form-actions {
+
+            }
+
+            .btn {
+
+            }
+
+            .btn-primary {
+
+            }
+
+            .btn-primary:hover {
+
+            }
+
+            .btn-secondary {
+
+            }
+
+            .btn-secondary:hover {
+
+            }
+
+            .help-text {
+
+            }
+        </style>
+
+    </th:block>
+</head>
+<body>
+<!--레이아웃에 삽입될 컨텐츠 블록 정의-->
+<th:block th:fragment="content">
+    <div class="form-container">
+        <!--시스템 에러 메시지 (예외 발생), error 변수가 있을 경우에만 표시-->
+        <div th:if="${error}" class="alert alert-danger alert-dismissible fade show mb-3">
+            <strong>⚠️ 오류 발생</strong>
+
+        </div>
+        <!--서버에서 전달된 에러 메시지가 있을 경우에만 표시-->
+        <div th:if="${message}" class="alert alert-danger alert-dismissible fade show mb-3" role="alert">
+            <span th:text="${message}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <!--페이지 헤더-->
+        <div class="form-header">
+            <h2>게시글 작성</h2>
+        </div>
+
+        <!--게시글 작성 폼-->
+        <form id="boardForm" th:action="@{/boards}" th:object="${board}" method="post" enctype="multipart/form-data">
+            <div class="form-group" th:classappend="${#fields.hasErrors('category')} ? 'error' : ''">
+                <label for="category">
+                    카테고리
+                    <span class="required"></span>
+                </label>
+                <select id="category" th:field="*{category}">
+                    <option value="">카테고리를 선택하세요</option>
+                    <option th:each="cat : ${categories}"
+                            th:value="${cat}"
+                            th:text="${cat.displayName}">
+                        카테고리
+                    </option>
+                </select>
+                <span class="error-message" th:if="${#fields.hasErrors('category')}"
+                      th:errors="*{category}">
+                    카테고리 에러
+                </span>
+            </div>
+
+            <!-- 제목 입력 필드 (필수) -->
+            <div class="form-group" th:classappend="${#fields.hasErrors('title')} ? 'error' : ''">
+                <label for="title">
+                    제목
+                    <span class="required">*</span>
+                </label>
+                <input type="text" id="title" th:field="*{title}" placeholder="제목을 입력하세요(최대 200자)">
+                <span class="error-message" th:if="${#fields.hasErrors('title')}"
+                      th:errors="*{title}">제목 에러
+                </span>
+            </div>
+
+            <!-- 내용 입력 필드 (필수) -->
+            <div class="form-group" th:classappend="${#fields.hasErrors('content')} ? 'error' : ''">
+                <label for="content">
+                    내용
+                    <span class="required">*</span>
+                </label>
+                <input type="text" id="content" th:field="*{content}" placeholder="내용을 입력하세요">
+                <span class="error-message" th:if="${#fields.hasErrors('content')}"
+                      th:errors="*{content}">내용 에러
+                </span>
+                <span class="help-txt">게시글 내용을 작성해주세요.</span>
+            </div>
+
+            <!--파일 첨부 필드-->
+            <div class="form-group">
+                <label for="files">첨부파일</label>
+                <input type="file" id="files" name="files" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip">
+                <span class="help-txt">이미지, 문서 파일 등을 첨부할 수 있습니다. (최대 10MB, 여러 파일 선택 가능)</span>
+            </div>
+
+            <!--버튼 영역-->
+            <div class="form-actions">
+                <a th:href="@{/boards}" class="btn btn-secondary">취소</a>
+                <button type="submit" class="btn btn-primary" id="submitBtn">작성 완료</button>
+            </div>
+        </form>
+    </div>
+</th:block>
+
+<!--레이아웃에 삽입될 JavaScript 블록 정의-->
+<th:block th:fragment="scripts">
+    <!--파일 업로드 및 폼 제출 검증 JavaScript-->
+    <script>
+        console.log("게시글 작성 폼 스크립트 로드");
+
+        // 페이지 로드 완료 후 실행
+        window.addEventListener('load', function() {
+            console.log('페이지 로드 완료');
+
+            const form = document.getElementById('boardForm');
+            const fileInput = document.getElementById('files');
+
+            if (!form || !fileInput) {
+                console.error('필수 요소를 찾을 수 없습니다.');
+                return;
+            }
+
+            const MAX_FILE_SIZE = 1024 * 1024 * 10;
+            const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'zip', 'hwp'];
+
+            // 파일 선택 시 검증
+            fileInput.addEventListener('change', function(e) {
+                const files = e.target.files;
+                let errorMessages = [];
+
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    if (file.size > MAX_FILE_SIZE) {
+                        errorMessages.push(file.name + ': 파일 크기가 10MB를 초과합니다. (' +
+                        (file.size / 1024 / 1024).toFixed(2) + 'MB)');
+                    }
+
+                    const fileName = file.name.toLowerCase();
+                    const extension = fileName.substring(fileName.lastIndexOf('.') + 1);
+
+                    if (!ALLOWED_EXTENSIONS.includes(extension)) {
+                        errorMessages.push(file.name + ': 허용되지 않은 파일 형식입니다. (' + extension + ')');
+                    }
+                }
+
+                if (errorMessages.length > 0) {
+                    alert('파일 업로드 오류:\n\n' + errorMessages.join('\n'));
+                    e.target.value = '';
+                }
+            });
+
+            // 폼 제출 시 검증
+            form.addEventListener('submit', function(e) {
+                console.log('폼 제출 시도');
+
+                // === 필수 필드 검증 추가 ===
+                // 1. 입력값 가져오기
+                const category = document.getElementById('category').value; //선택된 카테고리
+                const title = document.getElementById('title').value.trim(); //제목 (공백제거)
+                const content = document.getElementById('content').value.trim(); //내용 (공백제거)
+
+                // 2. 에러 메시지 배열 초기화
+                let validationErrors = [];
+
+                // 3. 카테고리 검증
+                if (!category){ // 빈 값이면
+                    validationErrors.push('카테고리를 선택해주세요.')
+                }
+
+                // 4. 제목 검증
+                if(!title) {    // 빈 값이면
+                    validationErrors.push('제목을 입력해주세요.')
+                } else if (title.length > 200) {
+                    validationErrors.push('제목은 200자를 초과할 수 없습니다.');
+                }
+
+                // 5. 내용 검증
+                if(!content){
+                    validationErrors.push('내용을 입력해주세요.')
+                }
+
+                // 6. 에러가 있으면 폼 제출 차단
+                if(validationErrors.length> 0){
+                    e.preventDefault(); // 폼 제출을 중단
+                    alert('입력 오류:\n\n'+ validationErrors.join('\n'));   //에러 메시지 표시
+                    return false;       // 함수 종료
+                }
+
+                // ===  필수 필드 검증 끝 ===
+
+
+                if (!confirm('게시글을 작성하시겠습니까?')) {
+                    console.log('사용자 취소');
+                    e.preventDefault();
+                    return false;
+                }
+
+                if (fileInput.files.length > 0) {
+                    const files = fileInput.files;
+
+                    for (let i = 0; i < files.length; i++) {
+                        const file = files[i];
+
+                        if (file.size > MAX_FILE_SIZE) {
+                            e.preventDefault();
+                            alert('파일 크기가 너무 큽니다.\n\n' + file.name + ': ' +
+                            (file.size / 1024 / 1024).toFixed(2) + 'MB\n최대 허용 크기: 10MB');
+                            return false;
+                        }
+
+                        const fileName = file.name.toLowerCase();
+                        const extension = fileName.substring(fileName.lastIndexOf('.') + 1);
+
+                        if (!ALLOWED_EXTENSIONS.includes(extension)) {
+                            e.preventDefault();
+                            alert('허용되지 않은 파일 형식입니다.\n\n' + file.name + ' (.' + extension + ')\n\n허용된 형식: ' + ALLOWED_EXTENSIONS.join(', '));
+                            return false;
+                        }
+                    }
+                }
+
+                console.log('모든 검증 통과, 폼 제출');
+                return true;
+            });
+
+            console.log('이벤트 리스너 등록 완료');
+        });
+    </script>
+</th:block>
+</body>
+</html>

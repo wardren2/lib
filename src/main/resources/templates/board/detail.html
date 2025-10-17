@@ -96,7 +96,7 @@
             .board-content {
                 padding: 30px;
                 min-height: 300px;      /* 최소 높이 (짧은 글도 일정 공간 확보) */
-                line-height: 1.0        /* 줄 간격 (가독성 향상) */
+                line-height: 1.0;        /* 줄 간격 (가독성 향상) */
                 color: #333;
                 font-size: 16px;
                 border-bottom: 2px solid #e9ecef;
@@ -118,12 +118,63 @@
                 display: flex;
                 gap: 10px;
             }
+            /* alert 기본 스타일*/
+            .alert {
+                padding: 12px 16px;
+                border:1px solid;
+                border-radius: 4px;
+            }
+            /*첨부 파일 영역 스타일*/
+            .board-files { /*첨부 파일 컨테이너*/
+                padding: 30px;
+                border-bottom: 2px solid #e9ecef;
+                background-color: #f8f9fa;
+            }
+            .files-header { /*첨부파일 헤더*/
+                font-size: 18px;
+                font-weight: bold;
+                color: #333;
+                margin-bottom: 15px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            .files-header i{
+                color: #007bff;
+            }
+            .file-list { /*파일 목록*/
+                list-style: none;
+                padding: 0;
+                margin: 0;
+            }
+            .file-item {/*개별 파일 아이템*/
+                display:flex;
+                align-items:center;
+                padding: 12px 15px;
+                margin-bottom: 8px;
+                background-color: white;
+                border: 1px solid #dee2e6;
+                border-radius: 6px;
+                transition: all 0.2s ease;
+            }
+            .file-item:hover{
+                background-color: #f8f9fa;
+                border-color:#007bff;
+                transform:translateX(5px);
+            }
         </style>
     </th:block>
 </head>
 <body>
 <!--메인 컨텐츠 영역 (layout.html의 <main>에 삽입됨)-->
 <th:block th:fragment="content">
+    <!--성공 메시지 (게시글 작성 완료)-->
+    <div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert"
+         style="margin: 20px auto; max-width: 900px; margin-bottom: 20px;">
+        <strong>✅ 성공</strong>
+        <span th:text="${success}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
     <div class="board-detail">
         <!--게시글 헤더 영역-->
         <div class="board-header">
@@ -181,6 +232,37 @@
             </div>
         </div>
 
+        <!--=== 첨부 파일 영역 ===
+        첨부파일이 존재할 경우에만 표시. @Lists: Thymeleaf 리스트 유틸리티 객체.isEmpty()-->
+        <div class="board-files" th:if="${not #lists.isEmpty(board.files)}"> <!--첨부파일이 있다는 조건-->
+            <div class="files-header">
+                <i class="fas fa-paperclip"></i> <!--클립 아이콘-->
+                <span>첨부파일(<span th:text="${#lists.size(board.files)}">0</span>)개</span>
+            </div>
+            <!--파일 목록 (순서 없는 리스트)-->
+            <ul class="file-list">
+                <li class="file-item" th:each="file : ${board.files}">
+                    <div class="file-icon" th:classappend="${file.getFileType()}">
+                        <i class="fas" th:classappend="${file.getFileIconClass()}"></i>
+                    </div>
+                    <!--파일 정보 영역 (파일명, 메타 정보)-->
+                    <div class="file-info">
+                        <div class="file-name" th:text="${file.originalFilename}">원본파일명</div>
+                        <div class="file-meta">
+                            <span><i class="fas fa-hdd"></i><span th:text="${file.getFormattedFileSize()}">1.1MB</span></span>
+                            <span><i class="fas fa-download"></i><span th:text="${file.downloadCount}">0</span>회</span>
+                        </div>
+                    </div>
+                    <!--파일 다운로드 버튼 (GET /files/download/{id})-->
+                    <a th:href="@{/files/download/{id}(id=${file.id})}"
+                       class="file-download-btn">
+                        <i class="fas fa-download"></i> 다운로드
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+
         <!-- === 게시글 푸터 (버튼 영역) === -->
         <div class="board-footer">
             <div class="btn-group">
@@ -189,8 +271,16 @@
                 </a>
             </div>
 
-            <div class="btn-group" sec:authorize="isAuthenticated()">
-                <!--추후 구현 예정 -->
+            <div class="btn-group" sec:authorize="isAuthenticated()"
+                 th:if="${#authentication.name == board.authorEmail}">
+                <!--로그인한 사용자가 작성자일 경우에만 수정/삭제 버튼 표시 -->
+                <a th:href="@{/boards/{id}/edit(id=${board.id})}" class="btn btn-outline">
+                    <i class="fas fa-edit"></i> 수정
+                </a>
+                <button type="button" class="btn btn-danger" onclick="deleteBoard()">
+                    <i class="fas fa-trash-alt"></i> 삭제
+                </button>
+
             </div>
         </div>
     </div>
@@ -199,7 +289,63 @@
 <!--게시글 상세 페이지 전용 JavaScript (layout.html의 </body> 직전에 삽입됨)-->
 <th:block th:fragment="scripts">
     <script>
+        /*
+            게시글 삭제 함수
+                - 사용자에게 삭제 확인을 받은 후 DELETE 요청을 보냄
+                - HTML form을 동적으로 생성하여 제출 (DELETE 메서드 지원)
+        */
+        function deleteBoard(){
+            // 1) 사용자에게 삭제 확인
+            if (!confirm('정말 이 게시글을 삭제하시겠습니까?\n삭제된 게시글을 복구할 수 없습니다.')){
+                return; // 취소하면 함수 종료
+            }
 
+            /* 2) Thymeleaf로 게시글 ID 가져오기
+                   - [[ ${expression}]] : Thymeleaf 인라인 표현식 - 서버 변수를 JS변수로 변환
+            */
+            const boardId = [[${board.id}]];
+
+            /*
+                3) HTML form 동적 생성
+                    - JavaScript로 form 요소를 동적으로 생성
+                    - 삭제 요청을 서버로 전송하기 위한 form
+            */
+            const form = document.createElement('form');     // <form> 태그 생성
+            form.method = 'POST';   //HTTP POST 메서드로 설정 (브라우저는 form으로 DELETE를 직접 못 보냄)
+            form.action = `/boards/${boardId}`;     // 요청 URL: /boards/123 (게시글 ID 포함)
+
+            /*
+                4) Spring이 DELETE로 인식
+                    - _method 필드 추가
+                        - 브라우저는 form으로 DELETE 메서드를 직접 보낼 수 없음
+                        - POST로 보내고 _method=DELETE로 Spring에게 알려줌
+            */
+        const methodInput = document.createElement('input');
+        methodInput.type = 'hidden';    // 화면에 보이지 않는 hidden 필드
+        methodInput.name = '_method';   // Spring이 인식하는 필드 이름
+        methodInput.value = 'DELETE';   // HTTP DLETE 메서드 지정
+        form.appendChild(methodInput);   // form에 필드 추가
+
+        /*
+            5) CSRF 토큰 추가 (Spring Security 보안)
+                - layout.html의 메타 태그에서 CSRF 토큰 읽기
+                - Spring Security가 요청시 자동으로 검증
+        */
+        const csrfToken = document.querySelector('meta[name="_csrf"]').content;     // CSRF 토큰 값
+        const csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;     // CSRF 헤더 이름
+
+        // CSRF 토큰을 hidden input으로 form에 추가
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = '_csrf';   // Spring Security 가 인식하는 파라미터 이름
+        csrfInput.value = csrfToken;    // 실제 토큰 값
+        form.appendChild(csrfInput);    // form의 필드에 csrfInput을 추가
+
+        // 6) form을 body에 추가하고 제출
+        document.body.appendChild(form);
+        form.submit();
+
+        }
     </script>
 </th:block>
 </body>
