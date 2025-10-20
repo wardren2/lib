@@ -3,6 +3,7 @@ package com.library.service;
 import com.library.dto.board.BoardCreateDTO;
 import com.library.dto.board.BoardDetailDTO;
 import com.library.dto.board.BoardListDTO;
+import com.library.dto.board.BoardUpdateDTO;
 import com.library.entity.board.Board;
 import com.library.entity.board.BoardFile;
 import com.library.entity.board.BoardStatus;
@@ -20,7 +21,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 /*
     게시글 Service
-        - 게시글 관련 비즈니스 로직을 처림함
+        - 게시글 관련 비즈니스 로직을 처리함
         - 트랜잭션 관리 및 Entity와 DTO 간 변환을 담당함
         - N + 1 문제 해결
             - 게시글 목록 조회 시 작성자 정보(author)도 함께 조회
@@ -88,7 +89,7 @@ public class BoardService {
 
         // 3. Entity를 DTO로 변환해서 반환
         return BoardDetailDTO.from(board);
-        // 4. 메서드 종료 - 트랙잭션이 커밋 직전 더티체킹 실행
+        // 4. 메서드 종료 - 트랜잭션이 커밋 직전 더티체킹 실행
         // JPA가 스냅샷과 현재 엔터티를 비교하여 viewCount 변경 감지
         // UPDATE board SET view_count=?, updated_at=? WHERE id=?
     }
@@ -195,4 +196,97 @@ public class BoardService {
             UPDATE board SET status='DELETED', updated_at? WHERE id=?
          */
     }
+
+    /*
+        게시글 수정용 조회
+            - 수정 폼에 표시할 게시글 정보 조회
+            - 작성자 본인만 조회 가능 (권한 검증)
+            - ACTIVE 상태의 게시글만 조회
+     */
+
+    @Transactional(readOnly = true)
+    public BoardDetailDTO getBoardForEdit(Long id, String userEmail){
+        // 1) 게시글 조회 (작성자 정보 포함)
+        Board board =
+                boardRepository.findByIdAndStatusWithAuthor(id, BoardStatus.ACTIVE)
+                        .orElseThrow(() -> new RuntimeException("게시글을 찾을 수 없습니다."));
+
+        // 2) 권한 검증 - 작성자 본인만 수정 가능
+        if(!board.getAuthor().getEmail().equals(userEmail)){
+            throw new RuntimeException("게시글을 수정할 권한이 없습니다.");
+        }
+
+        // 3) DTO로 변환하여 반환
+        return BoardDetailDTO.from(board);
+
+    }
+    /*
+        게시글 수정
+            - 제목, 내용, 카테고리 수정
+            - 기존 파일 삭제 및 새 파일 추가 처리
+            - 작성자 본인만 수정 가능 (권한 검증)
+            - 더티체킹으로 변경사항 자동 DB 반영
+     */
+    @Transactional
+    public void updateBoard(Long id, BoardUpdateDTO boardUpdateDTO, String userEmail){
+        // 1) 게시글 조회 (작성자 정보 포함)
+        Board board = boardRepository.findByIdAndStatusWithAuthor(id, BoardStatus.ACTIVE)
+                .orElseThrow(() -> new RuntimeException("게시글을 찾을 수 없습니다."));
+
+        // 2) 권한 검증 - 작성자 본인만 수정 가능
+        if(!board.getAuthor().getEmail().equals(userEmail)){
+            throw new RuntimeException("게시글을 수정할 권한이 없습니다.");
+        }
+
+        // 3) 게시글 기본 정보 수정 (더티체킹으로 자동 Update)
+        board.update(boardUpdateDTO.getTitle(), boardUpdateDTO.getContent(), boardUpdateDTO.getCategory());
+
+        // 4) 기존 파일 삭제 처리
+        if(boardUpdateDTO.getDeleteFileIds() != null && !boardUpdateDTO.getDeleteFileIds().isEmpty()){
+            // 삭제할 파일 ID 목록을 순회
+            for (Long fileId : boardUpdateDTO.getDeleteFileIds()) {
+                board.getFiles().stream()       // 현재 게시글의 첨부파일 스트림 생성
+                        .filter(file -> file.getId().equals(fileId))    // Id가 일치하는 파일만 필터링
+                        .findFirst()    // 첫번째로 일치하는 파일 찾기
+                        .ifPresent(file -> {
+                           // 파일은 물리적으로 삭제(⬌ cf. 게시글은 소프트삭제)
+                            fileStorageService.deleteFile(file.getFilePath(), file.getStoredFilename());
+                            // 컬렉션에서 제거 (orphanRemoval = true로 DB에서도 삭제됨)
+                            board.getFiles().remove(file);
+                        });
+
+            }
+        }
+        // 5) 새 파일 추가 처리
+        if(boardUpdateDTO.getFiles() != null && !boardUpdateDTO.getFiles().isEmpty()){
+            for (MultipartFile file : boardUpdateDTO.getFiles()){
+                // 빈 파일은 건너뛰기
+                if (file.isEmpty()){
+                    continue;
+                }
+                
+                String[] fileInfo = fileStorageService.storeFile(file, "boards");
+                String storedFilename = fileInfo[0];    // 배열[0] : 서버에 저장된 고유파일명
+                String filePath = fileInfo[1];  // 배열[1] : 파일이 저장된 전체 경로
+
+                BoardFile boardFile = BoardFile.builder()   // BoardFile 엔티티 생성
+                        .originalFilename(file.getOriginalFilename()) // 사용자가 업로드한 원본 파일명
+                        .storedFilename(storedFilename) // 서버에 저장된 고유 파일명 (UUID + 확장자)
+                        .filePath(filePath) //파일이 저장된 전체 경로
+                        .fileSize(file.getSize())
+                        .fileExtension(fileStorageService.getFileExtension(file.getOriginalFilename()))
+                        .mimeType(file.getContentType())    //파일의 MIME 타입 (예: "image/jpeg")
+                        .downloadCount(0L)
+                        .build();
+                board.addFile(boardFile);   //board 엔터티에 BoardFile 추가
+            }
+        }
+    }
+
+    //4) 메서드 종료 - 트랜잭션 커밋 직전 더티체킹 실행
+        /*
+            JPA가 스탭샷과 현재 엔티티를 비교하여 status 변경 감지
+            UPDATE board SET status='DELETED', udated_at=? WHERE id=?
+         */
+
 }

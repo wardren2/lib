@@ -162,6 +162,85 @@
                 border-color:#007bff;
                 transform:translateX(5px);
             }
+            .file-item:last-child {
+                margin-bottom: 0;
+            }
+            .file-icon{
+                width: 40px;
+                height: 40px;
+                display: flex;
+                align-items: center;        /*세로 중앙 정렬*/
+                justify-content: center;    /*가로 중앙 정렬*/
+                border-radius: 8px;
+                margin-right: 12px;
+                font-size: 20px;
+            }
+            .file-icon.IMAGE {
+                background-color: #e3f2fd;
+                color: #1976d2;
+            }
+            .file-icon.DOCUMENT {
+                background-color: #fff3e0;
+                color: #f57c00;
+            }
+            .file-icon.ARCHIVE {
+                background-color: #f3e5f5;
+                color: #7b1fa2;
+            }
+            .file-icon.OTHER {
+                background-color: #e0e0e0;
+                color: #616161;
+            }
+            .file-info {
+                flex: 1;    /* 남은 공간 전부 차지*/
+                display:flex;
+                flex-direction: column; /*세로 방향 배치*/
+                gap: 4px;
+            }
+            .file-name {
+                font-size: 15px;
+                font-weight: 500;
+                color: #333;
+                word-break: break-all;  /*긴 파일명 줄바꿈*/
+            }
+            .file-meta {
+                display: flex;
+                gap: 12px;
+                font-size: 13px;
+                color: #6c757d;
+            }
+            .file-meta i{
+                margin-right: 4px;
+                font-size: 12px;
+            }
+            .file-download-btn{
+                padding: 8px 16px;
+                background-color: #007bff;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                font-size: 14px;
+                font-weight: 500;
+                cursor: pointer;
+                text-decoration: none;
+                transition: background-color 0.2s ease;
+                white-space: nowrap;    /*텍스트 줄바꿈 방지*/
+            }
+            .file-download-btn:hover {
+                background-color: #0056b3;
+                text-decoration: none;
+            }
+            .file-download-btn i{
+                margin-right: 4px;
+            }
+            /* === 게시글 본문 이미지 스타일 === */
+            .board-content img {
+                max-width: 100%;           /* 최대 너비: 부모 요소(게시글 컨테이너)의 100% */
+                height: auto;              /* 높이: 자동 (가로세로 비율 유지) */
+                border-radius: 8px;        /* 모서리 둥글게 */
+                margin: 15px 0;            /* 위아래 마진 */
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);  /* 그림자 효과 */
+            }
         </style>
     </th:block>
 </head>
@@ -230,6 +309,13 @@
             <div style="white-space: pre-wrap; word-wrap: break-word;" th:text="${board.content}">
                 게시글 내용이 여기에 표시됩니다.
             </div>
+
+            <img th:if="${file.getFileType()=='image'}"
+                 th:each="file: ${board.files}"
+                 th:src="@{/uploads/{filePath}{filename}(filePath=${file.filePath},filename=${file.storedFilename})}">
+            <!-- 디버깅용: 실제 값 확인 -->
+            <span th:each="file: ${board.files}"
+                  th:text="'filePath: ' + ${file.filePath} + ', storedFilename: ' + ${file.storedFilename}"></span>
         </div>
 
         <!--=== 첨부 파일 영역 ===

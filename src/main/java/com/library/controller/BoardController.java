@@ -3,6 +3,7 @@ package com.library.controller;
 import com.library.dto.board.BoardCreateDTO;
 import com.library.dto.board.BoardDetailDTO;
 import com.library.dto.board.BoardListDTO;
+import com.library.dto.board.BoardUpdateDTO;
 import com.library.entity.board.BoardCategory;
 import com.library.service.BoardService;
 import jakarta.validation.Valid;
@@ -121,6 +122,8 @@ public class BoardController {
         // 카테고리 목록 전달 (select 옵션으로 선택)
         model.addAttribute("categories", BoardCategory.values());
 
+        model.addAttribute("isEditMode", false); // 작성 모드 플래그
+
         return "board/form";    // 게시글 작성 폼 뷰
     }
 
@@ -154,6 +157,7 @@ public class BoardController {
             // 게시글 생성 중 예외 발생 (DB 오류, 파일 업로드 오류 등) // 에러 메시지를 모델에 추가
             model.addAttribute("error", "게시글 작성 중 오류가 발생했습니다.");
             model.addAttribute("errorType", "system_error");
+            model.addAttribute("isEditMode", false); // 작성 모드 플래그
 
             //카테고리 목록 다시 추가 (폼 재표시용)
             model.addAttribute("categories", BoardCategory.values());
@@ -189,6 +193,104 @@ public class BoardController {
             redirectAttributes.addFlashAttribute("error", e.getMessage());
             return "redirect:/boards";
         }
+    }
+    /*
+        게시글 수정 폼 페이지
+            - 기존 게시글 정보를 조회하여 폼에 표시함
+            - 작성자 본인만 접근 가능
+     */
+    @GetMapping("/{id}/edit")
+    public String editForm(
+            @PathVariable Long id,
+            Principal principal,
+            Model model,
+            RedirectAttributes redirectAttributes
+    ){
+        try{
+            // 현재 로그인한 사용자 이메일
+            String userEmail = principal.getName();
+
+            // 수정할 게시글 조회 (권한 검증 포함)
+            BoardDetailDTO board = boardService.getBoardForEdit(id, userEmail);
+
+            // BoardUpdateDTO로 변환하여 폼에 바인딩
+            BoardUpdateDTO updateDTO = BoardUpdateDTO.builder()
+                    .title(board.getTitle())
+                    .content(board.getTitle())
+                    .category(board.getCategory())
+                    .build();
+            model.addAttribute("board", updateDTO);
+            model.addAttribute("boardId", id);
+            model.addAttribute("existingFiles", board.getFiles());  // 기존 첨부파일 목록
+            model.addAttribute("categories", BoardCategory.values());
+            model.addAttribute("isEditMode", true); // 수정 모드 플래그
+
+            return "board/form";
+
+        } catch (RuntimeException e) {
+            redirectAttributes.addFlashAttribute("error", e.getMessage());
+            return "redirect:/boards/" + id;
+        }
+
+    }
+    /*
+        게시글 수정 처리
+            - 제목, 내용, 카테고리 수정
+            - 기존 파일 삭제 및 새 파일 추가
+            - 작성자 본인만 수정 가능 (권한 검증)
+            - URL : PUT /boards/{id}
+     */
+    @PutMapping("/{id}")
+    public String update(
+            @PathVariable Long id,
+            @Valid @ModelAttribute("board") BoardUpdateDTO updateDTO,
+            BindingResult bindingResult,
+            Principal principal,
+            Model model,
+            RedirectAttributes redirectAttributes
+    ){
+        // 1. 유효성 검증 실패 처리
+        if(bindingResult.hasErrors()){
+            model.addAttribute("boardId", id);
+            model.addAttribute("categories", BoardCategory.values());
+            model.addAttribute("isEditMode", true);
+        
+        // 기존 파일 목록 다시 조회
+            try{
+                BoardDetailDTO board = boardService.getBoardForEdit(id, principal.getName());
+                model.addAttribute("existingFiles", board.getFiles());
+            } catch (Exception e) {
+                // 파일 목록 조회 실패해도 폼은 유시
+            }
+            return "board/form";
+        }
+
+        // 2. 수정
+        try {
+            // 현재 로그인한 사용자 이메일
+            String userEmail = principal.getName();
+            // 게시글 수정 처리
+            boardService.updateBoard(id, updateDTO, userEmail);
+            redirectAttributes.addFlashAttribute("success", "게시글이 수정되었습니다.");
+            return "redirect:/boards/" + id;
+        } catch (Exception e) {
+            model.addAttribute("error", "게시글 수정 중 오류가 발생했습니다");
+            model.addAttribute("errorType", "system_error");
+            model.addAttribute("board", id);
+            model.addAttribute("categories", BoardCategory.values());
+            model.addAttribute("isEditMode", true);
+
+            // 기존 파일 목록 다시 조회
+            try{
+                BoardDetailDTO board = boardService.getBoardForEdit(id, principal.getName());
+                model.addAttribute("existingFiles", board.getFiles());
+            } catch(Exception ex){
+                // 파일 목록 조회 실패해도 폼은 표시
+            }
+
+        }
+
+        return "board/form";
     }
     
 

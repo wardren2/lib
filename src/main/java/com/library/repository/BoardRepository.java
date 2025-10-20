@@ -73,7 +73,8 @@ public interface BoardRepository extends JpaRepository<Board, Long> {
 
     */
 
-    @Query("SELECT b from Board b JOIN FETCH b.author WHERE b.id = :id AND b.status = :status")
+    @Query("SELECT b from Board b JOIN FETCH b.author " +
+            "WHERE b.id = :id AND b.status = :status")
     Optional<Board> findByIdAndStatusWithAuthor(Long id, BoardStatus status);
 
 }
