@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -96,6 +97,11 @@ public class SecurityConfig {
                             .requestMatchers("/auth/**", "/register", "/login").permitAll()
                             // 게시판 URL (목록/상세 조회는 모두 허용)
                             .requestMatchers("/boards/**").permitAll()
+                            // 댓글 API 권한 설정
+                            // - GET(조회) : 누구나 접근 가능 (로그인 불필요)
+                            // - POST/PUT/DELETE (작성/수정/삭제) : 인증된 사용자만 가능
+                            .requestMatchers(HttpMethod.GET, "/api/comments/**").permitAll()
+                            .requestMatchers("/api/comments/**").authenticated()
                             // 그 외 모든 요청은 인증 필요
                             .anyRequest().authenticated();
                     log.info("2. URL 권한 설정 완료");

@@ -50,6 +50,9 @@ public class Comment extends BaseEntity {
     public void delete(){
         this.status = CommentStatus.DELETED;
     }
-    
-    // 연관관계 메서드
+
+    //연관관계 메서드 - 게시글 설정
+    public void setBoard(Board board) {
+        this.board = board;
+    }
 }

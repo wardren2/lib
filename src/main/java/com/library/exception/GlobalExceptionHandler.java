@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
     예외 처리 우선순위 ( 구체적인 것 => 일반적인 것 )
         1) InvalidFileException.java (파일 검증 실패)
         2) MaxUploadSizeExceededException (Spring 파일 크기 제한)
-        3) RuntimeExceptiuon (일반 런타임 에러)
+        3) RuntimeException (일반 런타임 에러)
         4) Exception (모든 예외의 최종 방어선)
  */
 @ControllerAdvice
