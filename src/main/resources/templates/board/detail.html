@@ -393,6 +393,9 @@
                 cursor: pointer;
                 transition: all 0.2s;
             }
+            img {
+
+            }
         </style>
     </th:block>
 </head>
@@ -465,9 +468,9 @@
             <img th:if="${file.getFileType()=='image'}"
                  th:each="file: ${board.files}"
                  th:src="@{/uploads/{filePath}{filename}(filePath=${file.filePath},filename=${file.storedFilename})}">
-            <!-- 디버깅용: 실제 값 확인 -->
-            <span th:each="file: ${board.files}"
-                  th:text="'filePath: ' + ${file.filePath} + ', storedFilename: ' + ${file.storedFilename}"></span>
+<!--            &lt;!&ndash; 디버깅용: 실제 값 확인 &ndash;&gt;-->
+<!--            <span th:each="file: ${board.files}"-->
+<!--                  th:text="'filePath: ' + ${file.filePath} + ', storedFilename: ' + ${file.storedFilename}"></span>-->
         </div>
 
         <!--=== 첨부 파일 영역 ===

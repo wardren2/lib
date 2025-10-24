@@ -1,0 +1,35 @@
+build/
+target/
+*.jar
+*.war
+
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+
+.git/
+.gitignore
+.gitattributes
+
+.gradle/
+gradle-wrapper.jar
+
+logs/
+*.log
+
+uploads/
+
+docs/
+*.md
+!README.md          # README.md는 포함한다는 뜻
+
+src/test/
+
+.DS_Store
+Thumbs.db
+
+Dockerfile
+.dockerignore       # 이 파일 자체도 뺌
+docker-compose.yml
