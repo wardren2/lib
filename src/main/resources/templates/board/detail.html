@@ -524,25 +524,25 @@
 
             </div>
         </div>
+    </div>
 
-        <!--=== 댓글 섹션 === -->
-        <!--1. HTML 구조 작성-->
-        <div class="comment-section">
-            <!--2. 댓글 헤더 영역-->
-            <div class="comment-header">
-                <h3>
-                    <i class="fas fa-comments"></i>
-                    댓글 <span id="commentCount">0</span>개
-                </h3>
-            </div>
+    <!--=== 댓글 섹션 === -->
+    <!--1. HTML 구조 작성-->
+    <div class="comment-section">
+        <!--2. 댓글 헤더 영역-->
+        <div class="comment-header">
+            <h3>
+                <i class="fas fa-comments"></i>
+                댓글 <span id="commentCount">0</span>개
+            </h3>
+        </div>
 
-            <!--3. 댓글 작성 폼 (로그인한 사용자만 표시)-->
-            <div class="comment-write" sec:authorize="isAuthenticated()">
-                <textarea id="commentContent" placeholder="댓글을 입력하세요..." rows="3"></textarea>
-                <button type="button" class="btn btn-primary" id="createCommentBtn">
-                    <i class="fas fa-paper-plane"></i> 댓글 작성
-                </button>
-            </div>
+        <!--3. 댓글 작성 폼 (로그인한 사용자만 표시)-->
+        <div class="comment-write" sec:authorize="isAuthenticated()">
+            <textarea id="commentContent" placeholder="댓글을 입력하세요..." rows="3"></textarea>
+            <button type="button" class="btn btn-primary" id="createCommentBtn">
+                <i class="fas fa-paper-plane"></i> 댓글 작성
+            </button>
         </div>
 
         <!--4. 로그인 안내 메시지 (비로그인 사용자)-->
@@ -573,8 +573,15 @@
 
         /* 6.2 CSRF 토큰 가져오기
             layout.html의 <head>에 있는 메타정보(태그 이름이 <meta>) */
-        const csrfToken = document.querySelector('meta[name="_csrf"]').content;
-        const csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
+        const csrfToken = document.querySelector('meta[name="_csrf"]')?.content;
+        const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.content;
+        
+        // CSRF 토큰 확인
+        if (!csrfToken || !csrfHeader) {
+            console.error('CSRF 토큰을 찾을 수 없습니다.');
+        } else {
+            console.log('CSRF 토큰 로드 완료:', csrfHeader);
+        }
 
         /*7. 페이지 로드 이벤트 처리*/
 
@@ -585,8 +592,10 @@
             loadComments();     // 댓글 목록 불러오기
 
             /* 7-3. 댓글 작성 버튼에 이벤트 리스너 등록*/
-
-
+            const createCommentBtn = document.getElementById('createCommentBtn');
+            if (createCommentBtn) {
+                createCommentBtn.addEventListener('click', createComment);
+            }
         });
 
         /* 8. 댓글 목록 조회 (GET 요청) */
@@ -658,12 +667,18 @@
                         <!--10-3-4. 작업 버튼 : 작성자 본인일 경우에만 표시-->
                         ${isAuthor ? `
                             <div class="comment-actions">
-                            <!--수정 버튼 : 클릭시 editComment() 함수 호출-->
                                 <button class="comment-edit-btn" onclick="editComment(${comment.id})">
                                     <i class="fas fa-edit"></i> 수정
                                 </button>
+                                <button class="comment-delete-btn" onclick="deleteComment(${comment.id})">
+                                    <i class="fas fa-trash"></i> 삭제
+                                </button>
                             </div>
                         ` : ''}
+                    </div>
+                    <!--10-3-5. 댓글 내용-->
+                    <div class="comment-content">
+                        <p>${comment.content}</p>
                     </div>
                 </div>
             `;
@@ -724,7 +739,129 @@
         // 6) form을 body에 추가하고 제출
         document.body.appendChild(form);
         form.submit();
+        }
 
+        /* 11. 댓글 작성 함수 */
+        function createComment() {
+            const content = document.getElementById('commentContent').value.trim();
+            
+            if (!content) {
+                alert('댓글 내용을 입력해주세요.');
+                return;
+            }
+            
+            // CSRF 토큰 재확인
+            const token = document.querySelector('meta[name="_csrf"]')?.content;
+            const header = document.querySelector('meta[name="_csrf_header"]')?.content;
+            
+            if (!token || !header) {
+                alert('보안 토큰을 찾을 수 없습니다. 페이지를 새로고침해주세요.');
+                return;
+            }
+            
+            const requestData = {
+                content: content
+            };
+            
+            console.log('댓글 작성 요청:', {
+                boardId: boardId,
+                content: content,
+                token: token ? 'exists' : 'missing',
+                header: header
+            });
+            
+            fetch(`/api/comments/boards/${boardId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    [header]: token
+                },
+                body: JSON.stringify(requestData)
+            })
+            .then(response => {
+                console.log('응답 상태:', response.status, response.statusText);
+                if (!response.ok) {
+                    return response.text().then(text => {
+                        throw new Error(`댓글 작성 실패: ${response.status} - ${text}`);
+                    });
+                }
+                return response.json();
+            })
+            .then(comment => {
+                console.log('댓글 작성 성공:', comment);
+                document.getElementById('commentContent').value = '';
+                loadComments();
+                alert('댓글이 작성되었습니다.');
+            })
+            .catch(error => {
+                console.error('댓글 작성 실패:', error);
+                alert('댓글 작성에 실패했습니다: ' + error.message);
+            });
+        }
+        
+        /* 12. 댓글 수정 함수 */
+        function editComment(commentId) {
+            const commentElement = document.getElementById(`comment-${commentId}`);
+            const contentElement = commentElement.querySelector('.comment-content p');
+            const currentContent = contentElement.textContent;
+            
+            const newContent = prompt('댓글을 수정하세요:', currentContent);
+            
+            if (newContent === null || newContent.trim() === '') {
+                return;
+            }
+            
+            const requestData = {
+                content: newContent.trim()
+            };
+            
+            fetch(`/api/comments/${commentId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    [csrfHeader]: csrfToken
+                },
+                body: JSON.stringify(requestData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('댓글 수정에 실패했습니다.');
+                }
+                return response.json();
+            })
+            .then(comment => {
+                loadComments();
+                alert('댓글이 수정되었습니다.');
+            })
+            .catch(error => {
+                console.error('댓글 수정 실패:', error);
+                alert('댓글 수정에 실패했습니다.');
+            });
+        }
+        
+        /* 13. 댓글 삭제 함수 */
+        function deleteComment(commentId) {
+            if (!confirm('정말 이 댓글을 삭제하시겠습니까?')) {
+                return;
+            }
+            
+            fetch(`/api/comments/${commentId}`, {
+                method: 'DELETE',
+                headers: {
+                    [csrfHeader]: csrfToken
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('댓글 삭제에 실패했습니다.');
+                }
+                loadComments();
+                alert('댓글이 삭제되었습니다.');
+            })
+            .catch(error => {
+                console.error('댓글 삭제 실패:', error);
+                alert('댓글 삭제에 실패했습니다.');
+            });
         }
 
         /*]] >*/
